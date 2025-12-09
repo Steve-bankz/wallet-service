@@ -1,0 +1,25 @@
+# docker-compose.yml
+
+version: '3.8' # Specifies the Docker Compose file format version
+
+services:
+  # This is our PostgreSQL database service
+  db:
+    image: postgres:14 # Use the official PostgreSQL image, version 14
+    container_name: wallet_db_container
+    restart: always # Always restart the container if it stops
+    environment:
+      # These variables are used by the postgres image to initialize the database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hindgeisiil83e
+      POSTGRES_DB: steve_wallet_db
+    ports:
+      # Maps port 5432 on your local machine to port 5432 inside the container
+      - "5432:5432"
+    volumes:
+      # Persists the database data on your local machine in a docker volume
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  # Defines the named volume for data persistence
+  postgres_data:

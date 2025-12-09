@@ -144,7 +144,7 @@ No payload required. (Handled by Google's redirect)
 ```json
 {
   "id": "c6a1e3b2-4d5f-6a7b-8c9d-0e1f2a3b4c5d",
-  "api_key": "sk_live_abcdef1234567890abcdef1234567890",
+  "api_key": "your_api_key",
   "expires_at": "2024-10-26T10:00:00.000Z"
 }
 ```
@@ -170,7 +170,7 @@ No payload required. (Handled by Google's redirect)
 ```json
 {
   "id": "f5d4c3b2-a1b2-c3d4-e5f6-a7b8c9d0e1f2",
-  "api_key": "sk_live_0987654321fedcba0987654321fedcba",
+  "api_key": "your_api_key",
   "expires_at": "2025-09-26T10:00:00.000Z"
 }
 ```

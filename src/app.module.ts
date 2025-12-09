@@ -20,16 +20,43 @@ import { PaystackModule } from './paystack/paystack.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST')!, // Add ! here
-        port: +configService.get<number>('DB_PORT')!, // Add ! here
-        username: configService.get<string>('DB_USERNAME')!, // Add ! here
-        password: configService.get<string>('DB_PASSWORD')!, // Add ! here
-        database: configService.get<string>('DB_NAME')!, // Add ! here
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, 
-      }),
+      useFactory: (configService: ConfigService) => {
+        // Check if the application is running in the production environment on Render
+        const isProduction = configService.get('NODE_ENV') === 'production';
+        const databaseUrl = configService.get('DATABASE_URL');
+
+        if (isProduction && databaseUrl) {
+          // Production configuration for Render PostgreSQL
+          return {
+            type: 'postgres',
+            url: databaseUrl, // Use the single connection URL from Render
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
+            migrations: [__dirname + '/migrations/*{.ts,.js}'],
+            synchronize: false, // NEVER set to true in production
+            ssl: true, // Render requires SSL connections
+            extra: {
+              ssl: {
+                rejectUnauthorized: false, // Necessary for Render's managed database
+              },
+            },
+          };
+        }
+        
+        // Local development configuration (for Docker)
+        return {
+          type: 'postgres',
+          host: configService.get<string>('DB_HOST')!,
+          port: +configService.get<number>('DB_PORT')!,
+          username: configService.get<string>('DB_USERNAME')!,
+          password: configService.get<string>('DB_PASSWORD')!,
+          database: configService.get<string>('DB_NAME')!,
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          // synchronize: true is fine for local dev to auto-create tables,
+          // but we set it to false now to be consistent with our migration workflow.
+          // Run your app with Docker and then run `npm run migration:run` locally too.
+          synchronize: false,
+        };
+      },
     }),
 
     // --- Feature Modules ---

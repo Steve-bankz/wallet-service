@@ -9,6 +9,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { PaystackModule } from './paystack/paystack.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { PaystackModule } from './paystack/paystack.module';
     TransactionModule,
     ApiKeyModule,
     PaystackModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -4,6 +4,7 @@ import { User } from './entities/user.entity';
 import { UserService } from './user.service';
 import { WalletModule } from '../wallet/wallet.module'; // Import WalletModule
 import { Wallet } from '../wallet/entities/wallet.entity'; // Import Wallet entity
+import { UserController } from './user.controller';
 
 @Module({
  imports: [
@@ -12,5 +13,6 @@ import { Wallet } from '../wallet/entities/wallet.entity'; // Import Wallet enti
  ],
  providers: [UserService],
  exports: [UserService],
+ controllers: [UserController],
 })
 export class UserModule {}

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { Wallet } from '../wallet/entities/wallet.entity';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @Injectable()
 export class UserService {
@@ -45,4 +46,20 @@ export class UserService {
   async findByIdWithWallet(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id }, relations: ['wallet'] });
 }
+
+getMe(user: User): UserResponseDto {
+    // The user object is passed directly from the controller,
+    // already fetched by the JwtStrategy.
+    
+    // We manually construct the response DTO to control the output.
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      wallet: {
+        walletNumber: user.wallet.walletNumber,
+        balance: parseFloat(user.wallet.balance.toString()),
+      },
+    };
+  }
 }

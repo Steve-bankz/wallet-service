@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsString,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum ApiKeyPermission {
   DEPOSIT = 'deposit',
@@ -19,14 +20,31 @@ export enum ApiKeyExpiry {
 }
 
 export class CreateApiKeyDto {
+  @ApiProperty({
+    description: 'A user-friendly name for the API key.',
+    example: 'My New Service Key',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
 
+
+  @ApiProperty({
+    description: 'The permissions to grant to this key.',
+    example: ['deposit', 'read'],
+    enum: ApiKeyPermission,
+    isArray: true,
+  })
   @IsArray()
   @IsEnum(ApiKeyPermission, { each: true })
   permissions: ApiKeyPermission[];
 
+
+  @ApiProperty({
+    description: 'The lifetime of the key (Hour, Day, Month, Year).',
+    example: '1M',
+    enum: ApiKeyExpiry,
+  })
   @IsEnum(ApiKeyExpiry)
   expiry: ApiKeyExpiry;
 }

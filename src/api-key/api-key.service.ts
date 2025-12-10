@@ -18,7 +18,10 @@ export class ApiKeyService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(userId: string, createApiKeyDto: CreateApiKeyDto) {
+  async create(
+    userId: string,
+    createApiKeyDto: CreateApiKeyDto,
+  ): Promise<{ api_key: string; expires_at: string }> { // <-- UPDATED return type
     // 1. Check if the user has reached the key limit
     const activeKeysCount = await this.apiKeyRepository.count({
       where: {
@@ -52,11 +55,10 @@ export class ApiKeyService {
 
     await this.apiKeyRepository.save(newApiKey);
 
-    // 6. Return the raw key and expiry date to the user
+    // 6. Return the raw key and expiry date to the user, matching the spec
     return {
-        id: newApiKey.id,
-        api_key: rawApiKey, // IMPORTANT: Only return the raw key once
-        expires_at: expiresAt.toISOString(),
+      api_key: rawApiKey,
+      expires_at: expiresAt.toISOString(),
     };
   }
 
@@ -78,11 +80,9 @@ export class ApiKeyService {
         dateToReturn = new Date(now.setFullYear(now.getFullYear() + 1));
         break;
       default:
-        // This should not happen due to DTO validation, but it's good practice
         throw new BadRequestException('Invalid expiry value');
     }
 
-    // --- NEW: Enforce min/max lifetime ---
     const minExpiryHours = +this.configService.get<number>('API_KEY_MIN_EXPIRY_HOURS')!;
     const maxExpiryHours = +this.configService.get<number>('API_KEY_MAX_EXPIRY_HOURS')!;
 
@@ -110,10 +110,9 @@ export class ApiKeyService {
   async rollover(
     userId: string,
     rolloverDto: RolloverApiKeyDto,
-  ): Promise<{ id: string; api_key: string; expires_at: string }> {
+  ): Promise<{ api_key: string; expires_at: string }> { // <-- UPDATED return type
     const { expired_key_id, expiry } = rolloverDto;
 
-    // 1. Find the old key, ensuring it belongs to the user
     const oldKey = await this.apiKeyRepository.findOne({
       where: { id: expired_key_id, userId: userId },
     });
@@ -122,12 +121,10 @@ export class ApiKeyService {
       throw new NotFoundException('The specified API key does not exist or you do not have permission to access it.');
     }
 
-    // 2. Verify the key is actually expired
     if (oldKey.expiresAt > new Date()) {
       throw new BadRequestException('This key is not yet expired and cannot be rolled over.');
     }
 
-    // 3. Reuse the same active key limit check from the 'create' method
     const activeKeysCount = await this.apiKeyRepository.count({
       where: {
         userId: userId,
@@ -140,16 +137,14 @@ export class ApiKeyService {
       throw new ForbiddenException('You have reached the maximum number of active API keys.');
     }
 
-    // 4. Generate and hash a new key
     const rawApiKey = `sk_live_${crypto.randomBytes(16).toString('hex')}`;
     const salt = await bcrypt.genSalt();
     const hashedApiKey = await bcrypt.hash(rawApiKey, salt);
     const newExpiresAt = this.calculateExpiry(expiry);
 
-    // 5. Create the new key, reusing permissions and name from the old key
     const newApiKey = this.apiKeyRepository.create({
-      name: oldKey.name, // Reuse name
-      permissions: oldKey.permissions, // Reuse permissions
+      name: oldKey.name,
+      permissions: oldKey.permissions,
       key: hashedApiKey,
       userId: userId,
       expiresAt: newExpiresAt,
@@ -157,18 +152,17 @@ export class ApiKeyService {
 
     await this.apiKeyRepository.save(newApiKey);
     
-    // Optional: Mark the old key as revoked to prevent it from being rolled over again
     oldKey.revoked = true;
     await this.apiKeyRepository.save(oldKey);
 
+    // Return the object matching the spec
     return {
-        id: newApiKey.id,
       api_key: rawApiKey,
       expires_at: newExpiresAt.toISOString(),
     };
   }
 
-   async revoke(userId: string, revokeDto: RevokeApiKeyDto): Promise<{ message: string }> {
+  async revoke(userId: string, revokeDto: RevokeApiKeyDto): Promise<{ message: string }> {
     const { key_id } = revokeDto;
 
     const apiKey = await this.apiKeyRepository.findOne({
@@ -186,12 +180,8 @@ export class ApiKeyService {
   }
 
   async validateApiKey(apiKey: string): Promise<{ user: User; permissions: string[] } | null> {
-    // We cannot query the raw key directly. We need to find a way to check it.
-    // A simple approach for this project: iterate through keys.
-    // A production approach would use a more complex system.
-
     const allKeys = await this.apiKeyRepository.find({
-      relations: ['user', 'user.wallet'], // Load the related user entity
+      relations: ['user', 'user.wallet'],
       where: {
         revoked: false,
         expiresAt: MoreThanOrEqual(new Date()),
@@ -201,12 +191,10 @@ export class ApiKeyService {
     for (const key of allKeys) {
       const isMatch = await bcrypt.compare(apiKey, key.key);
       if (isMatch) {
-        // Found a match. The key is valid.
         return { user: key.user, permissions: key.permissions };
       }
     }
 
-    return null; // No valid key found
+    return null;
   }
-
 }
